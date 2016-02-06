@@ -1,0 +1,81 @@
+#!/usr/bin/python
+
+import argparse
+import os
+import subprocess
+import sys
+
+
+def find_python_files():
+    """
+    Search under cwd for all python files
+    """
+    modules = []
+    scripts = []
+
+    print "finding files"
+    skipdirs = ["./.git"]
+    for root, dirs, files in os.walk("."):
+        if root in modules:
+            continue
+
+        if root != "." and ".git" in dirs:
+            # Don't descend into other git repos
+            skipdirs.append(root)
+
+        do_skip = False
+        for skip in skipdirs:
+            if root == skip or root.startswith(skip + "/"):
+                do_skip = True
+                break
+        if do_skip:
+            continue
+
+        if "__init__.py" in files:
+            modules.append(root)
+            continue
+
+        for filename in [os.path.join(root, f) for f in files]:
+            if os.path.islink(filename):
+                continue
+            if "Python script" in subprocess.check_output(
+                ["/usr/bin/file", filename]):
+                scripts.append(filename)
+
+    files = [(f.startswith("./") and f[2:] or f) for f in (modules + scripts)]
+    return files
+
+
+def parse_args():
+    desc = ("Helper script to intelligently run pylint against all "
+            "python code underneath the current directory")
+    parser = argparse.ArgumentParser(description=desc)
+
+    options = parser.parse_args()
+    return options
+
+
+def main():
+    options = parse_args()
+    ignore = options
+
+    files = find_python_files()
+    output_format = sys.stdout.isatty() and "colorized" or "text"
+    scriptdir = os.path.dirname(os.path.abspath(__file__))
+
+    print "running pylint"
+    cmd = "pylint "
+    cmd += "--output-format=%s " % output_format
+    cmd += " ".join(files)
+    cmd += " --rcfile %s" % os.path.join(scriptdir, "generic-pylint.cfg")
+    os.system(cmd)
+
+    print "running pep8"
+    cmd = "pep8 "
+    cmd += " ".join(files)
+    cmd += " --config %s" % os.path.join(scriptdir, "generic-pep8.cfg")
+    os.system(cmd)
+
+
+if __name__ == '__main__':
+    sys.exit(main())
