@@ -45,7 +45,7 @@ def find_python_files():
                 ["/usr/bin/file", filename]):
                 scripts.append(filename)
 
-    files = [(f.startswith("./") and f[2:] or f) for f in (modules + scripts)]
+    files = [(f.startswith("./") and f[2:] or f) for f in (scripts + modules)]
     return files
 
 
