@@ -64,19 +64,16 @@ def main():
 
     files = find_python_files()
     output_format = sys.stdout.isatty() and "colorized" or "text"
-    scriptdir = os.path.dirname(os.path.realpath(__file__))
 
     print "running pep8"
     cmd = "pep8 "
     cmd += " ".join(files)
-    cmd += " --config %s" % os.path.join(scriptdir, "generic-pep8.cfg")
     os.system(cmd)
 
     print "running pylint"
     cmd = "pylint "
     cmd += "--output-format=%s " % output_format
     cmd += " ".join(files)
-    cmd += " --rcfile %s" % os.path.join(scriptdir, "generic-pylint.cfg")
     os.system(cmd)
 
 
