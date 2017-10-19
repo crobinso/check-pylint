@@ -70,8 +70,8 @@ def main():
         files = find_python_files()
     output_format = sys.stdout.isatty() and "colorized" or "text"
 
-    print "running pep8"
-    cmd = "pep8 "
+    print "running pycodestyle"
+    cmd = "pycodestyle "
     cmd += " ".join(files)
     os.system(cmd)
 
