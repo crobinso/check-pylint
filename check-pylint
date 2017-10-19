@@ -4,20 +4,22 @@
 # See the COPYING file in the top-level directory.
 
 import argparse
+import distutils.spawn
 import os
+import re
 import subprocess
 import sys
 
 
 def find_python_files():
     """
-    Search under cwd for all python files
+    Search under cwd for all python files.
     """
     modules = []
     scripts = []
 
     print "finding files"
-    skipdirs = ["./.git"]
+    skipdirs = ["./.git", "./.tox"]
     for root, dirs, files in os.walk("."):
         if root in modules:
             continue
@@ -49,6 +51,41 @@ def find_python_files():
     return files
 
 
+def distill_default_apps(files):
+    """
+    Try to determine the default app paths depending on the python
+    version of the code we are inspecting
+
+    :returns: (pylint bin name, pycodestyle bin name)
+    """
+    is_py2 = False
+    is_py3 = False
+    for f in files:
+        if os.path.isdir(f):
+            f = os.path.join(f, "__init__.py")
+        line = file(f).readline()
+        if not is_py2 and re.search("python[ 2]?", line):
+            is_py2 = True
+        elif not is_py3 and re.search("python3", line):
+            is_py3 = True
+
+    py2_pylint = py3_pylint = "pylint"
+    py2_pycodestyle = py3_pycodestyle = "pycodestyle"
+    if distutils.spawn.find_executable("pylint-2"):
+        py2_pylint = "pylint-2"
+    if distutils.spawn.find_executable("pylint-3"):
+        py3_pylint = "pylint-3"
+    if distutils.spawn.find_executable("pycodestyle-2"):
+        py2_pycodestyle = "pycodestyle-2"
+    if distutils.spawn.find_executable("pycodestyle-3"):
+        py3_pycodestyle = "pycodestyle-3"
+
+    # Prefer py2 if both detected
+    if is_py3 and not is_py2:
+        return py3_pylint, py3_pycodestyle
+    return py2_pylint, py2_pycodestyle
+
+
 def parse_args():
     desc = ("Helper script to intelligently run pylint against all "
             "python code underneath the current directory")
@@ -63,20 +100,20 @@ def parse_args():
 
 def main():
     options = parse_args()
-    ignore = options
 
     files = options.files
     if not files:
         files = find_python_files()
     output_format = sys.stdout.isatty() and "colorized" or "text"
+    pylint, pycodestyle = distill_default_apps(files)
 
-    print "running pycodestyle"
-    cmd = "pycodestyle "
+    print "running %s" % pycodestyle
+    cmd = "%s " % pycodestyle
     cmd += " ".join(files)
     os.system(cmd)
 
-    print "running pylint"
-    cmd = "pylint "
+    print "running %s" % pylint
+    cmd = "%s " % pylint
     cmd += "--output-format=%s " % output_format
     cmd += " ".join(files)
     os.system(cmd)
