@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 #
 # This work is licensed under the terms of the GNU GPL, version 2 or later.
 # See the COPYING file in the top-level directory.
@@ -18,7 +18,7 @@ def find_python_files():
     modules = []
     scripts = []
 
-    print "finding files"
+    print("finding files")
     skipdirs = ["./.git", "./.tox"]
     for root, dirs, files in os.walk("."):
         if root in modules:
@@ -43,8 +43,8 @@ def find_python_files():
         for filename in [os.path.join(root, f) for f in files]:
             if os.path.islink(filename):
                 continue
-            if "Python script" in subprocess.check_output(
-                ["/usr/bin/file", filename]):
+            out = subprocess.check_output(["/usr/bin/file", filename])
+            if "Python script" in out.decode("utf-8"):
                 scripts.append(filename)
 
     files = [(f.startswith("./") and f[2:] or f) for f in (scripts + modules)]
@@ -64,7 +64,7 @@ def distill_default_apps(options, files):
         for f in files:
             if os.path.isdir(f):
                 f = os.path.join(f, "__init__.py")
-            line = file(f).readline()
+            line = open(f).readline()
             if not is_py2 and re.search("python2", line):
                 print("Detected python2 env lines")
                 is_py2 = True
@@ -130,13 +130,13 @@ def main():
         return 1
 
     for pycodestyle in pycodestyle_cmds:
-        print "running %s" % pycodestyle
+        print("running %s" % pycodestyle)
         cmd = "%s " % pycodestyle
         cmd += " ".join(files)
         os.system(cmd)
 
     for pylint in pylint_cmds:
-        print "running %s" % pylint
+        print("running %s" % pylint)
         cmd = "%s " % pylint
         cmd += "--output-format=%s " % output_format
         cmd += " ".join(files)
