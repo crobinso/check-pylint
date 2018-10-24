@@ -51,23 +51,31 @@ def find_python_files():
     return files
 
 
-def distill_default_apps(files):
+def distill_default_apps(options, files):
     """
     Try to determine the default app paths depending on the python
     version of the code we are inspecting
 
     :returns: (pylint bin name, pycodestyle bin name)
     """
-    is_py2 = False
-    is_py3 = False
-    for f in files:
-        if os.path.isdir(f):
-            f = os.path.join(f, "__init__.py")
-        line = file(f).readline()
-        if not is_py2 and re.search("python[ 2]?", line):
-            is_py2 = True
-        elif not is_py3 and re.search("python3", line):
-            is_py3 = True
+    is_py2 = options.is_py2
+    is_py3 = options.is_py3
+    if not is_py2 and not is_py3:
+        for f in files:
+            if os.path.isdir(f):
+                f = os.path.join(f, "__init__.py")
+            line = file(f).readline()
+            if not is_py2 and re.search("python2", line):
+                print("Detected python2 env lines")
+                is_py2 = True
+            elif not is_py3 and re.search("python3", line):
+                print("Detected python3 env lines")
+                is_py3 = True
+            elif not is_py2 and not is_py3 and re.search("python", line):
+                print("Detected python env lines, assuming python2")
+                is_py2 = True
+        if is_py2 and is_py3:
+            is_py3 = False
 
     py2_pylint = py3_pylint = "pylint"
     py2_pycodestyle = py3_pycodestyle = "pycodestyle"
@@ -80,10 +88,16 @@ def distill_default_apps(files):
     if distutils.spawn.find_executable("pycodestyle-3"):
         py3_pycodestyle = "pycodestyle-3"
 
-    # Prefer py2 if both detected
-    if is_py3 and not is_py2:
-        return py3_pylint, py3_pycodestyle
-    return py2_pylint, py2_pycodestyle
+    pylint_ret = []
+    pycode_ret = []
+    if is_py2:
+        pylint_ret.append(py2_pylint)
+        pycode_ret.append(py2_pycodestyle)
+    if is_py3:
+        pylint_ret.append(py3_pylint)
+        pycode_ret.append(py3_pycodestyle)
+
+    return pylint_ret, pycode_ret
 
 
 def parse_args():
@@ -93,6 +107,10 @@ def parse_args():
 
     parser.add_argument("files", nargs="*",
             help="Manually specify the filelist, instead of searching.")
+    parser.add_argument("-2", "--2", action="store_true", dest="is_py2",
+            help="Skip auto detection, use python2")
+    parser.add_argument("-3", "--3", action="store_true", dest="is_py3",
+            help="Skip auto detection, use python3")
 
     options = parser.parse_args()
     return options
@@ -105,18 +123,24 @@ def main():
     if not files:
         files = find_python_files()
     output_format = sys.stdout.isatty() and "colorized" or "text"
-    pylint, pycodestyle = distill_default_apps(files)
+    pylint_cmds, pycodestyle_cmds = distill_default_apps(options, files)
 
-    print "running %s" % pycodestyle
-    cmd = "%s " % pycodestyle
-    cmd += " ".join(files)
-    os.system(cmd)
+    if not pylint_cmds:
+        print("No python files detected!")
+        return 1
 
-    print "running %s" % pylint
-    cmd = "%s " % pylint
-    cmd += "--output-format=%s " % output_format
-    cmd += " ".join(files)
-    os.system(cmd)
+    for pycodestyle in pycodestyle_cmds:
+        print "running %s" % pycodestyle
+        cmd = "%s " % pycodestyle
+        cmd += " ".join(files)
+        os.system(cmd)
+
+    for pylint in pylint_cmds:
+        print "running %s" % pylint
+        cmd = "%s " % pylint
+        cmd += "--output-format=%s " % output_format
+        cmd += " ".join(files)
+        os.system(cmd)
 
 
 if __name__ == '__main__':
