@@ -10,15 +10,23 @@ import re
 import subprocess
 import sys
 
+QUIET = False
 
-def find_python_files():
+
+def p(*args, **kwargs):
+    if QUIET:
+        return
+    print(*args, **kwargs)
+
+
+def find_python_files(quiet):
     """
     Search under cwd for all python files.
     """
     modules = []
     scripts = []
 
-    print("finding files")
+    p("finding files")
     skipdirs = ["./.git", "./.tox"]
     for root, dirs, files in os.walk("."):
         if root in modules:
@@ -66,13 +74,13 @@ def distill_default_apps(options, files):
                 f = os.path.join(f, "__init__.py")
             line = open(f).readline()
             if not is_py2 and re.search("python2", line):
-                print("Detected python2 env lines")
+                p("Detected python2 env lines")
                 is_py2 = True
             elif not is_py3 and re.search("python3", line):
-                print("Detected python3 env lines")
+                p("Detected python3 env lines")
                 is_py3 = True
             elif not is_py2 and not is_py3 and re.search("python", line):
-                print("Detected python env lines, assuming python2")
+                p("Detected python env lines, assuming python2")
                 is_py2 = True
         if is_py2 and is_py3:
             is_py3 = False
@@ -111,6 +119,12 @@ def parse_args():
             help="Skip auto detection, use python2")
     parser.add_argument("-3", "--3", action="store_true", dest="is_py3",
             help="Skip auto detection, use python3")
+    parser.add_argument("--disable-pylint", action="store_true",
+            help="Disable pylint checking")
+    parser.add_argument("--disable-pycodestyle", action="store_true",
+            help="Disable pycodestyle checking")
+    parser.add_argument("-q", "--quiet", action="store_true",
+            help="Don't print any informational messages")
 
     options = parser.parse_args()
     return options
@@ -119,28 +133,34 @@ def parse_args():
 def main():
     options = parse_args()
 
+    if options.quiet:
+        global QUIET
+        QUIET = True
+
     files = options.files
     if not files:
-        files = find_python_files()
+        files = find_python_files(options.quiet)
     output_format = sys.stdout.isatty() and "colorized" or "text"
     pylint_cmds, pycodestyle_cmds = distill_default_apps(options, files)
 
     if not pylint_cmds:
-        print("No python files detected!")
+        p("No python files detected!")
         return 1
 
-    for pycodestyle in pycodestyle_cmds:
-        print("running %s" % pycodestyle)
-        cmd = "%s " % pycodestyle
-        cmd += " ".join(files)
-        os.system(cmd)
+    if not options.disable_pycodestyle:
+        for pycodestyle in pycodestyle_cmds:
+            p("running %s" % pycodestyle)
+            cmd = "%s " % pycodestyle
+            cmd += " ".join(files)
+            os.system(cmd)
 
-    for pylint in pylint_cmds:
-        print("running %s" % pylint)
-        cmd = "%s " % pylint
-        cmd += "--output-format=%s " % output_format
-        cmd += " ".join(files)
-        os.system(cmd)
+    if not options.disable_pylint:
+        for pylint in pylint_cmds:
+            p("running %s" % pylint)
+            cmd = "%s " % pylint
+            cmd += "--output-format=%s " % output_format
+            cmd += " ".join(files)
+            os.system(cmd)
 
 
 if __name__ == '__main__':
