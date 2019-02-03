@@ -19,34 +19,23 @@ def p(*args, **kwargs):
     print(*args, **kwargs)
 
 
-def find_python_files(quiet):
+def find_python_files():
     """
     Search under cwd for all python files.
     """
     modules = []
     scripts = []
 
-    p("finding files")
-    skipdirs = ["./.git", "./.tox"]
-    for root, dirs, files in os.walk("."):
-        if root in modules:
-            continue
-
-        if root != "." and ".git" in dirs:
-            # Don't descend into other git repos
-            skipdirs.append(root)
-
-        do_skip = False
-        for skip in skipdirs:
-            if root == skip or root.startswith(skip + "/"):
-                do_skip = True
-                break
-        if do_skip:
-            continue
+    def _check(root):
+        if os.path.basename(root) in [".git", "__pycache__", ".tox"]:
+            return []
+        files = os.listdir(root)
+        ret = [os.path.join(root, f) for f in files if os.path.isdir(f)]
+        files = [f for f in files if f not in dirs]
 
         if "__init__.py" in files:
             modules.append(root)
-            continue
+            return ret
 
         for filename in [os.path.join(root, f) for f in files]:
             if os.path.islink(filename):
@@ -54,9 +43,15 @@ def find_python_files(quiet):
             out = subprocess.check_output(["/usr/bin/file", filename])
             if "Python script" in out.decode("utf-8"):
                 scripts.append(filename)
+        return ret
 
-    files = [(f.startswith("./") and f[2:] or f) for f in (scripts + modules)]
-    return files
+    p("finding files")
+    dirs = ["."]
+    while dirs:
+        dirs += _check(dirs.pop(0))
+
+    ret = [(f.startswith("./") and f[2:] or f) for f in (scripts + modules)]
+    return ret
 
 
 def distill_default_apps(options, files):
@@ -139,7 +134,7 @@ def main():
 
     files = options.files
     if not files:
-        files = find_python_files(options.quiet)
+        files = find_python_files()
     output_format = sys.stdout.isatty() and "colorized" or "text"
     pylint_cmds, pycodestyle_cmds = distill_default_apps(options, files)
 
