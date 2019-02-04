@@ -80,6 +80,11 @@ def distill_default_apps(options, files):
         if is_py2 and is_py3:
             is_py3 = False
 
+    if not is_py2 and not is_py3:
+        # Default to py3 assumption
+        p("No explicit py2 or py3 support found, so assume py3")
+        is_py3 = True
+
     py2_pylint = py3_pylint = "pylint"
     py2_pycodestyle = py3_pycodestyle = "pycodestyle"
     if distutils.spawn.find_executable("pylint-2"):
@@ -135,12 +140,12 @@ def main():
     files = options.files
     if not files:
         files = find_python_files()
-    output_format = sys.stdout.isatty() and "colorized" or "text"
-    pylint_cmds, pycodestyle_cmds = distill_default_apps(options, files)
-
-    if not pylint_cmds:
+    if not files:
         p("No python files detected!")
         return 1
+
+    output_format = sys.stdout.isatty() and "colorized" or "text"
+    pylint_cmds, pycodestyle_cmds = distill_default_apps(options, files)
 
     if not options.disable_pycodestyle:
         for pycodestyle in pycodestyle_cmds:
