@@ -40,6 +40,8 @@ def find_python_files():
         for filename in [os.path.join(root, f) for f in files]:
             if os.path.islink(filename):
                 continue
+            if filename.endswith(",cover"):
+                continue
             out = subprocess.check_output(["/usr/bin/file", filename])
             if "Python script" in out.decode("utf-8"):
                 scripts.append(filename)
