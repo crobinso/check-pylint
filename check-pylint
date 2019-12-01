@@ -6,11 +6,21 @@
 import argparse
 import distutils.spawn
 import os
+import pprint
+import logging
 import re
 import subprocess
 import sys
 
 QUIET = False
+
+
+log = logging.getLogger("check-pylint")
+_fmt = "%(levelname)s (%(module)s:%(lineno)d) %(message)s"
+_handler = logging.StreamHandler(sys.stderr)
+_handler.setFormatter(logging.Formatter(_fmt))
+log.addHandler(_handler)
+log.setLevel(logging.ERROR)
 
 
 def p(*args, **kwargs):
@@ -53,6 +63,7 @@ def find_python_files():
         dirs += _check(dirs.pop(0))
 
     ret = [(f.startswith("./") and f[2:] or f) for f in (scripts + modules)]
+    log.debug("Found files:\n%s", pprint.pformat(sorted(ret)))
     return ret
 
 
@@ -127,6 +138,8 @@ def parse_args():
             help="Disable pycodestyle checking")
     parser.add_argument("-q", "--quiet", action="store_true",
             help="Don't print any informational messages")
+    parser.add_argument("-d", "--debug", action="store_true",
+            help="Print debugging output")
 
     options = parser.parse_args()
     return options
@@ -138,6 +151,8 @@ def main():
     if options.quiet:
         global QUIET
         QUIET = True
+    elif options.debug:
+        log.setLevel(logging.DEBUG)
 
     files = options.files
     if not files:
@@ -154,6 +169,7 @@ def main():
             p("running %s" % pycodestyle)
             cmd = "%s " % pycodestyle
             cmd += " ".join(files)
+            log.debug("Full command: %s", cmd)
             os.system(cmd)
 
     if not options.disable_pylint:
@@ -162,6 +178,7 @@ def main():
             cmd = "%s " % pylint
             cmd += "--output-format=%s " % output_format
             cmd += " ".join(files)
+            log.debug("Full command: %s", cmd)
             os.system(cmd)
 
 
