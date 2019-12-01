@@ -39,15 +39,15 @@ def find_python_files():
     def _check(root):
         if os.path.basename(root) in [".git", "__pycache__", ".tox"]:
             return []
-        files = os.listdir(root)
-        ret = [os.path.join(root, f) for f in files if os.path.isdir(f)]
+        files = [os.path.join(root, f) for f in os.listdir(root)]
+        ret = [f for f in files if os.path.isdir(f)]
         files = [f for f in files if f not in dirs]
 
         if "__init__.py" in files:
             modules.append(root)
             return ret
 
-        for filename in [os.path.join(root, f) for f in files]:
+        for filename in files:
             if os.path.islink(filename):
                 continue
             if filename.endswith(",cover"):
