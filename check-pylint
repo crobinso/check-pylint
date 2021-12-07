@@ -140,6 +140,8 @@ def parse_args():
             help="Don't print any informational messages")
     parser.add_argument("-d", "--debug", action="store_true",
             help="Print debugging output")
+    parser.add_argument("-j", "--jobs", default=0,
+            help="Pass --jobs to pylint")
 
     options = parser.parse_args()
     return options
@@ -177,8 +179,7 @@ def main():
             p("running %s" % pylint)
             cmd = "%s " % pylint
             cmd += "--output-format=%s " % output_format
-            print("WARN: Oct 2020: Forcing -j1 because pylint is busted")
-            cmd += "-j1 "
+            cmd += "--jobs=%s " % options.jobs
             cmd += " ".join(files)
             log.debug("Full command: %s", cmd)
             os.system(cmd)
