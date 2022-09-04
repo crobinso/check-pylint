@@ -4,11 +4,11 @@
 # See the COPYING file in the top-level directory.
 
 import argparse
-import distutils.spawn
 import os
 import pprint
 import logging
 import re
+import shutil
 import subprocess
 import sys
 
@@ -100,13 +100,13 @@ def distill_default_apps(options, files):
 
     py2_pylint = py3_pylint = "pylint"
     py2_pycodestyle = py3_pycodestyle = "pycodestyle"
-    if distutils.spawn.find_executable("pylint-2"):
+    if shutil.which("pylint-2"):
         py2_pylint = "pylint-2"
-    if distutils.spawn.find_executable("pylint-3"):
+    if shutil.which("pylint-3"):
         py3_pylint = "pylint-3"
-    if distutils.spawn.find_executable("pycodestyle-2"):
+    if shutil.which("pycodestyle-2"):
         py2_pycodestyle = "pycodestyle-2"
-    if distutils.spawn.find_executable("pycodestyle-3"):
+    if shutil.which("pycodestyle-3"):
         py3_pycodestyle = "pycodestyle-3"
 
     pylint_ret = []
